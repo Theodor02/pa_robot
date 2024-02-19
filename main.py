@@ -31,5 +31,6 @@ base_motor = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 
 # Main loop, actual code.
 while True:
-    print("bla")
-    print("dö")
+    base_motor.run(600)
+    for i in 100:
+        ev3.speaker.beep(2000,10)
