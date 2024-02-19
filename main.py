@@ -31,30 +31,39 @@ base_motor = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 
 # Main robot functions.
 
+# Robot arm funcs
 def arm_move(position):
 
     return
+
 
 def arm_return(origin):
 
     return
 
+
 def arm_max():
-    
+
     return
 
+
+# Robot object functions
 def block_detect():
 
     return
+
 
 def block_pickup():
 
     return
 
+
 def block_putdown():
 
     return
 
+
+# Robot calibration and failsafe, "Essential"
 def robot_calibrate():
     base_colour = 0
     first_colour = 0
@@ -62,6 +71,7 @@ def robot_calibrate():
     third_colour = 0
 
     return base_colour, first_colour, second_colour, third_colour
+
 
 def robot_failsafe():
 
@@ -72,5 +82,5 @@ def robot_failsafe():
 while True:
     base_motor.run(600)
     for i in range(100):
-        ev3.speaker.beep(2000,10)
-        ev3.speaker.say(" DI DI ID ID ID ID ID ID ID DI DIDIDI DIDI DI WOWOWOWOWWOWOWOWOWOWOWWO")
+        ev3.speaker.beep(2000, 10)
+        ev3.speaker.say(" DI DI ID ID ID ID ID ID ID DI DIDIDI DIDI DI")
