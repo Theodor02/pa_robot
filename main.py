@@ -29,6 +29,45 @@ elbow_motor = Motor(Port.B, Direction.COUNTERCLOCKWISE, [8, 40])
 base_motor = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 
 
+# Main robot functions.
+
+def arm_move(position):
+
+    return
+
+def arm_return(origin):
+
+    return
+
+def arm_max():
+    
+    return
+
+def block_detect():
+
+    return
+
+def block_pickup():
+
+    return
+
+def block_putdown():
+
+    return
+
+def robot_calibrate():
+    base_colour = 0
+    first_colour = 0
+    second_colour = 0
+    third_colour = 0
+
+    return base_colour, first_colour, second_colour, third_colour
+
+def robot_failsafe():
+
+    return
+
+
 # Main loop, actual code.
 while True:
     base_motor.run(600)
