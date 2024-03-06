@@ -1,35 +1,19 @@
 #!/usr/bin/env pybricks-micropython
 
-"""
-Building instructions can be found at:
-https://education.lego.com/en-us/support/mindstorms-ev3/building-instructions#building-core
-"""
-
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
-from pybricks.parameters import Port, Stop, Direction, Color
+from pybricks.parameters import Port, Stop, Direction, Color, Button
 from pybricks.tools import wait
 
-# Initialize the EV3 Brick
 ev3 = EV3Brick()
 
-# Configure the gripper motor on Port A with default settings.
 gripper_motor = Motor(Port.A)
 
-# Configure the elbow motor. It has an 8-teeth and a 40-teeth gear
-# connected to it. We would like positive speed values to make the
-# arm go upward. This corresponds to counterclockwise rotation
-# of the motor.
 elbow_motor = Motor(Port.B, Direction.COUNTERCLOCKWISE, [8, 40])
 
-# Configure the motor that rotates the base. It has a 12-teeth and a
-# 36-teeth gear connected to it. We would like positive speed values
-# to make the arm go away from the Touch Sensor. This corresponds
-# to counterclockwise rotation of the motor.
 base_motor = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 
-# Limit the elbow and base accelerations. This results in
-# very smooth motion. Like an industrial robot.
+
 elbow_motor.control.limits(speed=60, acceleration=120)
 base_motor.control.limits(speed=60, acceleration=120)
 
@@ -39,38 +23,79 @@ colorsensor = ColorSensor(Port.S2)
 
 
 
-# Variables.
-base_colour = 0
-first_colour = 0
-second_colour = 0
-third_colour = 0
-arm_origin = NotImplemented
-base_origin = NotImplemented
-
-
-
-
 def robot_calibrate():
     gripper_cal()
     arm_cal()
     base_cal()
 
-    return base_colour, first_colour, second_colour, third_colour
 
+def manual_move():
+    pickup_zones = []
+    putdown_zones = {}
+    pressed = ev3.buttons.pressed()
+    check = True
+    while(check):
+        was_pressed = pressed
+        pressed = ev3.buttons.pressed()
+        if Button.LEFT in pressed:
+            base_motor.run(20)
+            
+        elif Button.RIGHT in pressed and base_motor.angle() >= 0:
+            base_motor.run(-20)
+            
+        else:
+            base_motor.hold()
+            
+        if Button.UP in pressed and Button.UP not in was_pressed:
+            pickup_zones.append(base_motor.angle())
+            print("pick has happened")
 
-# Robot arm funcs
+        if Button.DOWN in pressed and Button.DOWN not in was_pressed:
+            
+            ev3.screen.draw_text(10,10,"GREEN = UP")
+            ev3.screen.draw_text(10,30,"RED = DOWN")
+            ev3.screen.draw_text(10,50,"BLUE = LEFT")
+            ev3.screen.draw_text(10,70,"YELLOW = RIGHT")
+            wait(500)
+            done = False
+            while not done:
+                was_pressed = pressed
+                pressed = ev3.buttons.pressed()
+                if Button.UP in pressed and Button.UP not in was_pressed:
+                    done = True
+                    putdown_zones["GREEN"] = base_motor.angle()
+                elif Button.DOWN in pressed and Button.DOWN not in was_pressed:
+                    done = True
+                    putdown_zones["RED"] = base_motor.angle()
+                elif Button.LEFT in pressed and Button.LEFT not in was_pressed:
+                    done = True
+                    putdown_zones["BLUE"] = base_motor.angle()
+                elif Button.RIGHT in pressed and Button.RIGHT not in was_pressed:
+                    done = True
+                    putdown_zones["YELLOW"] = base_motor.angle()
+            ev3.screen.clear()
+        
+        if Button.CENTER in pressed and Button.CENTER not in was_pressed:
+            check = False
+
+    return [pickup_zones, putdown_zones]
+
 def arm_move(position):
     elbow_motor.run_target(60,position)
     return
 
 
+def base_move(position):
+    base_motor.run_target(60,position)
+
+
 def arm_cal():
-    if colorsensor.reflection() == 0:
-        while colorsensor.reflection() == 0:
+    if colorsensor.reflection() < 4:
+        while colorsensor.reflection() < 4:
             elbow_motor.run(-5)
-    elif colorsensor.reflection() != 0:
-        while colorsensor.reflection() != 0:
-            elbow_motor.run(5)   
+    elif colorsensor.reflection() > 3:
+        while colorsensor.reflection() > 3:
+            elbow_motor.run(5)
     elbow_motor.reset_angle(-10)
     arm_move(0)
     
@@ -83,77 +108,68 @@ def base_cal():
     base_motor.reset_angle(-7)
     base_move(0)
 
+
 def gripper_cal():
     arm_move(20)
-    gripper_motor.run_until_stalled(200, then=Stop.COAST, duty_limit=50)
+    gripper_motor.run_until_stalled(200, then=Stop.COAST, duty_limit=75)
     gripper_motor.reset_angle(0)
     gripper_motor.run_target(200, -90)
 
 
-
-
-def base_move(position):
-    base_motor.run_target(60,position)
-
-
-
-
-# Robot object functions
 def block_detect():
-    rgb = colorsensor.rgb()
+    color_list = []
+    color_map = {
+        Color.RED: "RED",
+        Color.GREEN: "GREEN",
+        Color.BLUE: "BLUE",
+        Color.YELLOW: "YELLOW"
+    }
+    count = 0
+    while count < 20:
+        color_list.append(colorsensor.color())
+        count += 1
+    return color_map.get(most_frequent(color_list))
 
-    # if colorsensor.color() == Color.RED:
-    #     color = "RED"
-    # elif colorsensor.color() == Color.GREEN:
-    #     color = "GREEN"
-    # elif colorsensor.color() == Color.BLUE:
-    #     color = "BLUE"
-    # elif colorsensor.color() == Color.YELLOW:
-    #     color = "YELLOW"
-    # else:
-    #     color = "NO COLOR"
-    return rgb
+def most_frequent(List):
+    return max(set(List), key = List.count)
 
-
-def block_pickup():
+def block_pickup(angle):
+    base_move(angle)
     gripper_motor.run_target(50, -90)
-    elbow_motor.run_until_stalled(-20,Stop.HOLD,5)
-    gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=50)
+    elbow_motor.run_until_stalled(-20,Stop.HOLD, duty_limit=10)
+    gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=75)
     elbow_motor.run_target(20, 0)
-    return
 
 
-def block_putdown():
+def block_putdown(angle):
+    base_move(angle)
     elbow_motor.run_until_stalled(-20,Stop.HOLD,duty_limit=10)
     gripper_motor.run_target(50, -90)
     elbow_motor.run_target(20,0)
 
-    return
 
+def robot_func(zones):
+    pickup = zones[0][0]
+    putdown = zones[1]
+    block_pickup(pickup)
+    if type(block_detect()) == type(""):
+        block_putdown(putdown.get(block_detect()))
+    else:
+        block_putdown(base_motor.angle())
 
-# Robot calibration and failsafe, "Essential"
-
-
-def robot_failsafe(): 
+def main():
+    robot_calibrate()
+    notes = [ # Radera inte
+    "E4/4", "E4/4", "F4/4", "G4/4", 
+    "G4/4", "F4/4", "E4/4", "D4/4", 
+    "C4/4", "C4/4", "D4/4", "E4/4",
+    "E4/3", "D4/8", "D4/4"
+    ]
+    zones = manual_move()
+    for x in range(100):
+        robot_func(zones)
+    ev3.speaker.play_notes(notes, tempo=800)
     
-    return
 
-# robot_calibrate()
-
-# block_pickup()
-
-# print(block_detect())
-# wait(1000)
-# block_putdown()
-
-# base_move(200)
-# block_pickup()
-# print(block_detect())
-# block_putdown()
-
-# ev3.speaker.say("DONE")
-
-
-while True:
-    wait(250)
-    print(colorsensor.reflection())
+if __name__ == "__main__":
+    main()
