@@ -5,6 +5,7 @@ from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
 from pybricks.parameters import Port, Stop, Direction, Color, Button
 from pybricks.tools import wait
 
+
 ev3 = EV3Brick()
 
 gripper_motor = Motor(Port.A)
@@ -20,6 +21,12 @@ base_motor.control.limits(speed=60, acceleration=120)
 touchsensor = TouchSensor(Port.S1)
 
 colorsensor = ColorSensor(Port.S2)
+
+pickup_angles = [0,102,148,196]
+
+def closest_pudozone(angle):
+     
+    return pickup_angles[min(range(len(pickup_angles)), key = lambda i: abs(pickup_angles[i]-angle))]
 
 
 
@@ -37,6 +44,9 @@ def manual_move():
     while(check):
         was_pressed = pressed
         pressed = ev3.buttons.pressed()
+        ev3.screen.draw_text(10,10,'DONE = CENTER')
+        ev3.screen.draw_text(10,30,'PICKUP = UP')
+        ev3.screen.draw_text(10,50,'DROPOFF = DOWN')
         if Button.LEFT in pressed:
             base_motor.run(20)
             
@@ -47,11 +57,10 @@ def manual_move():
             base_motor.hold()
             
         if Button.UP in pressed and Button.UP not in was_pressed:
-            pickup_zones.append(base_motor.angle())
-            print("pick has happened")
+            pickup_zones.append(closest_pudozone(base_motor.angle()))
 
         if Button.DOWN in pressed and Button.DOWN not in was_pressed:
-            
+            ev3.screen.clear()
             ev3.screen.draw_text(10,10,"GREEN = UP")
             ev3.screen.draw_text(10,30,"RED = DOWN")
             ev3.screen.draw_text(10,50,"BLUE = LEFT")
@@ -63,21 +72,21 @@ def manual_move():
                 pressed = ev3.buttons.pressed()
                 if Button.UP in pressed and Button.UP not in was_pressed:
                     done = True
-                    putdown_zones["GREEN"] = base_motor.angle()
+                    putdown_zones["GREEN"] = closest_pudozone(base_motor.angle())
                 elif Button.DOWN in pressed and Button.DOWN not in was_pressed:
                     done = True
-                    putdown_zones["RED"] = base_motor.angle()
+                    putdown_zones["RED"] = closest_pudozone(base_motor.angle())
                 elif Button.LEFT in pressed and Button.LEFT not in was_pressed:
                     done = True
-                    putdown_zones["BLUE"] = base_motor.angle()
+                    putdown_zones["BLUE"] = closest_pudozone(base_motor.angle())
                 elif Button.RIGHT in pressed and Button.RIGHT not in was_pressed:
                     done = True
-                    putdown_zones["YELLOW"] = base_motor.angle()
+                    putdown_zones["YELLOW"] = closest_pudozone(base_motor.angle())
             ev3.screen.clear()
         
         if Button.CENTER in pressed and Button.CENTER not in was_pressed:
             check = False
-
+    ev3.screen.clear()
     return [pickup_zones, putdown_zones]
 
 def arm_move(position):
@@ -116,19 +125,42 @@ def gripper_cal():
     gripper_motor.run_target(200, -90)
 
 
+def rgb_detection():
+    rgb_value = colorsensor.rgb()
+    red_original, green_original, blue_original = rgb_value
+    red = red_original / (green_original + 0.001)
+    green = green_original / (blue_original + 0.001)
+    blue = blue_original / (red_original + 0.001)
+    # wait(500)
+    # print('\n \n \n \n \n \n \n \n \n \n \n \n \n ')
+    # print("red")
+    # print(red)
+    # print("green")
+    # print(green)
+    # print("blue")
+    # print(blue)
+    if red > 4:
+        return "RED"
+
+    elif red > 1.3 and green > 1.3 and blue < 1:
+        return "YELLOW"
+
+    elif red < 1 and green > 0.8 and blue > 2:
+        return "GREEN"
+
+    elif red < 1 and green < 0.8 and blue > 2:
+        return "BLUE"
+
+    else:
+        return 1
+
 def block_detect():
     color_list = []
-    color_map = {
-        Color.RED: "RED",
-        Color.GREEN: "GREEN",
-        Color.BLUE: "BLUE",
-        Color.YELLOW: "YELLOW"
-    }
     count = 0
     while count < 20:
-        color_list.append(colorsensor.color())
+        color_list.append(rgb_detection())
         count += 1
-    return color_map.get(most_frequent(color_list))
+    return most_frequent(color_list)
 
 def most_frequent(List):
     return max(set(List), key = List.count)
@@ -143,32 +175,39 @@ def block_pickup(angle):
 
 def block_putdown(angle):
     base_move(angle)
-    elbow_motor.run_until_stalled(-20,Stop.HOLD,duty_limit=10)
+    elbow_motor.run_angle(200,-20,Stop.COAST)
+
+
+    # elbow_motor.run_until_stalled(-20,Stop.COAST,duty_limit=10)
+    wait(10000)
+    elbow_motor.hold()
     gripper_motor.run_target(50, -90)
-    elbow_motor.run_target(20,0)
+    elbow_motor.run_target(20,30)
 
 
 def robot_func(zones):
     pickup = zones[0][0]
     putdown = zones[1]
     block_pickup(pickup)
-    if type(block_detect()) == type(""):
-        block_putdown(putdown.get(block_detect()))
+    bd = block_detect()
+    elbow_motor.run_target(20,30)
+    if type(bd) == type(""):
+        block_putdown(putdown.get(bd))
     else:
+        wait(1000)
         block_putdown(base_motor.angle())
+    
 
 def main():
     robot_calibrate()
-    notes = [ # Radera inte
-    "E4/4", "E4/4", "F4/4", "G4/4", 
-    "G4/4", "F4/4", "E4/4", "D4/4", 
-    "C4/4", "C4/4", "D4/4", "E4/4",
-    "E4/3", "D4/8", "D4/4"
+    notes = ["A4/4", "C4/4", "F4/4", "A4/4", "E4/4", "A4/4", "E4/4", "A4/4", "C4/4", "D4/4", "F4/4", "A4/4", "E4/4", "A4/4", "D4/4", "F4/4", "A4/4", "E4/4", "A4/4", "C4/4", "F4/4", "A4/4", "E4/4", "A4/4", "E4/4"
     ]
+    lyrics = "Ill take you to the candy shop  Ill let you lick the lollypop  Go ahead girl and dont you stop  Keep going till you hit the spot, WHOA!  (Ill take you to the candy shop)  (Boy one taste of what I got)  (Ill have you spending all you got)  (Keep going till you hit the spot, WHOA!)"
     zones = manual_move()
+    # ev3.speaker.play_notes(notes, tempo=117)
+    # ev3.speaker.say(lyrics)
     for x in range(100):
         robot_func(zones)
-    ev3.speaker.play_notes(notes, tempo=800)
     
 
 if __name__ == "__main__":
