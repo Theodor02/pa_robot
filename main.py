@@ -131,14 +131,6 @@ def rgb_detection():
     red = red_original / (green_original + 0.001)
     green = green_original / (blue_original + 0.001)
     blue = blue_original / (red_original + 0.001)
-    # wait(500)
-    # print('\n \n \n \n \n \n \n \n \n \n \n \n \n ')
-    # print("red")
-    # print(red)
-    # print("green")
-    # print(green)
-    # print("blue")
-    # print(blue)
     if red > 4:
         return "RED"
 
@@ -198,6 +190,12 @@ def robot_func(zones):
     else:
         wait(1000)
         block_putdown(base_motor.angle())
+
+
+def emergency_stop(emergency):
+    if emergency:
+        print("L Bozo")
+    return
 
 
 def main():
