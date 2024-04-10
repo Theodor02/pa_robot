@@ -2,7 +2,7 @@
 
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
-from pybricks.parameters import Port, Stop, Direction, Color, Button
+from pybricks.parameters import Port, Stop, Direction, Button
 from pybricks.tools import wait
 import math
 
@@ -27,9 +27,8 @@ pickup_angles = [4,105,150,196]
 
 
 def closest_pudozone(angle):
-     
-    return pickup_angles[min(range(len(pickup_angles)), key = lambda i: abs(pickup_angles[i]-angle))]
 
+    return pickup_angles[min(range(len(pickup_angles)), key = lambda i: abs(pickup_angles[i]-angle))]
 
 
 def robot_calibrate():
@@ -78,21 +77,21 @@ def manual_move():
     putdown_zones = {}
     pressed = ev3.buttons.pressed()
     check = True
-    while(check):
+    while (check):
         was_pressed = pressed
         pressed = ev3.buttons.pressed()
-        ev3.screen.draw_text(10,10,'DONE = CENTER')
-        ev3.screen.draw_text(10,30,'PICKUP = UP')
-        ev3.screen.draw_text(10,50,'DROPOFF = DOWN')
+        ev3.screen.draw_text(10, 10, 'DONE = CENTER')
+        ev3.screen.draw_text(10, 30, 'PICKUP = UP')
+        ev3.screen.draw_text(10, 50, 'DROPOFF = DOWN')
         if Button.LEFT in pressed:
             base_motor.run(20)
-            
+
         elif Button.RIGHT in pressed and base_motor.angle() >= 0:
             base_motor.run(-20)
-            
+
         else:
             base_motor.hold()
-            
+
         if Button.UP in pressed and Button.UP not in was_pressed:
             curangle = closest_pudozone(base_motor.angle())
             pickup_zones.append(curangle)
@@ -101,10 +100,10 @@ def manual_move():
 
         if Button.DOWN in pressed and Button.DOWN not in was_pressed:
             ev3.screen.clear()
-            ev3.screen.draw_text(10,10,"GREEN = UP")
-            ev3.screen.draw_text(10,30,"RED = DOWN")
-            ev3.screen.draw_text(10,50,"BLUE = LEFT")
-            ev3.screen.draw_text(10,70,"YELLOW = RIGHT")
+            ev3.screen.draw_text(10, 10, "GREEN = UP")
+            ev3.screen.draw_text(10, 30, "RED = DOWN")
+            ev3.screen.draw_text(10, 50, "BLUE = LEFT")
+            ev3.screen.draw_text(10, 70, "YELLOW = RIGHT")
             wait(500)
             done = False
             while not done:
@@ -139,20 +138,20 @@ def manual_move():
                     wait(10)
                     blocks_at_zone[pickup_angles.index(curangle)] = nrofblockssel()
             ev3.screen.clear()
-        
         if Button.CENTER in pressed and Button.CENTER not in was_pressed:
             check = False
     ev3.screen.clear()
     wait(1000)
     return [pickup_zones, putdown_zones]
 
+
 def arm_move(position):
-    elbow_motor.run_target(60,position)
+    elbow_motor.run_target(60, position)
     return
 
 
 def base_move(position):
-    base_motor.run_target(60,position)
+    base_motor.run_target(60, position)
 
 
 def arm_cal():
@@ -164,7 +163,7 @@ def arm_cal():
             elbow_motor.run(5)
     elbow_motor.reset_angle(-10)
     arm_move(0)
-    
+
 
 def base_cal():
     base_motor.run(-60)
@@ -206,6 +205,7 @@ def rgb_detection():
     else:
         return 1
 
+
 def block_detect():
     color_list = []
     count = 0
@@ -214,8 +214,11 @@ def block_detect():
         count += 1
     return most_frequent(color_list)
 
+
 def most_frequent(List):
-    return max(set(List), key = List.count)
+    key = List.count
+    return max(set(List), key)
+
 
 def block_pickup(angle):
     anglecounter = base_motor.angle()
@@ -241,7 +244,7 @@ def block_putdown(angle):
     # elbow_motor.hold()
     blocks_at_zone[pickup_angles.index(angle)]+=1
     gripper_motor.run_target(50, -90)
-    elbow_motor.run_target(20,30)
+    elbow_motor.run_target(20, 30)
 
 
 def robot_func(zones):
@@ -269,15 +272,21 @@ def shutdown_button():
 
 def main():
     robot_calibrate()
-    notes = ["A4/4", "C4/4", "F4/4", "A4/4", "E4/4", "A4/4", "E4/4", "A4/4", "C4/4", "D4/4", "F4/4", "A4/4", "E4/4", "A4/4", "D4/4", "F4/4", "A4/4", "E4/4", "A4/4", "C4/4", "F4/4", "A4/4", "E4/4", "A4/4", "E4/4"
+    notes = [
+        "F#/3,A/3,C#/4",  # F#m chord
+        "A/3,C#/4,E/4",   # A major chord
+        "B/3,D#/4,F#/4",  # B major chord
+        "D/3,F#/3,A/3",   # D major chord
+        "C#/3,E/3,G#/3"   # C# minor chord
     ]
-    lyrics = "Ill take you to the candy shop  Ill let you lick the lollypop  Go ahead girl and dont you stop  Keep going till you hit the spot, WHOA!  (Ill take you to the candy shop)  (Boy one taste of what I got)  (Ill have you spending all you got)  (Keep going till you hit the spot, WHOA!)"
+
+    # lyrics = "Ill take you to the candy shop  Ill let you lick the lollypop  Go ahead girl and dont you stop  Keep going till you hit the spot, WHOA!  (Ill take you to the candy shop)  (Boy one taste of what I got)  (Ill have you spending all you got)  (Keep going till you hit the spot, WHOA!)"
     zones = manual_move()
-    # ev3.speaker.play_notes(notes, tempo=117)
+    ev3.speaker.play_notes(notes, tempo=117)
     # ev3.speaker.say(lyrics)
     for x in range(100):
         robot_func(zones)
-    
+
 
 if __name__ == "__main__":
     main()
