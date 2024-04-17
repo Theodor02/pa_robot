@@ -21,7 +21,7 @@ colorsensor = ColorSensor(Port.S2)
 
 # Global Variables
 blocks_at_zone = [0, 0, 0, 0]
-pickup_angles = [4, 105, 150, 196]
+pickup_angles = [2, 103, 148, 193]
 connection_state = True
 global schedule_wait
 is_multiplayer = False
@@ -39,10 +39,11 @@ def robot_calibrate():
 
 def blockselectscreen(nr):
     ev3.screen.clear()
-    ev3.screen.draw_text(60, 10, "Select the amount of blocks currently at the zone")
-    ev3.screen.draw_text(60, 30, "UP")
-    ev3.screen.draw_text(60, 50, str(nr))
-    ev3.screen.draw_text(60, 70, "DOWN")
+    ev3.screen.draw_text(5, 10, "Block height")
+    ev3.screen.draw_text(5, 30, "at zone")
+    ev3.screen.draw_text(5, 50, "UP")
+    ev3.screen.draw_text(5, 70, str(nr))
+    ev3.screen.draw_text(5, 90, "DOWN")
 
 
 def nrofblockssel():
@@ -50,6 +51,7 @@ def nrofblockssel():
     nrofblocks = 0
     blockselectscreen(nrofblocks)
     done = False
+    wait(300)
     while not done:
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
@@ -75,9 +77,9 @@ def manual_move():
     while (check):
         was_pressed = pressed
         pressed = ev3.buttons.pressed()
-        ev3.screen.draw_text(10, 10, 'DONE = CENTER')
-        ev3.screen.draw_text(10, 30, 'PICKUP = UP')
-        ev3.screen.draw_text(10, 50, 'DROPOFF = DOWN')
+        ev3.screen.draw_text(5, 10, 'DONE = CENTER')
+        ev3.screen.draw_text(5, 30, 'PICKUP = UP')
+        ev3.screen.draw_text(5, 50, 'DROPOFF = DOWN')
         if Button.LEFT in pressed:
             base_motor.run(60)
 
@@ -94,10 +96,10 @@ def manual_move():
 
         if Button.DOWN in pressed and Button.DOWN not in was_pressed:
             ev3.screen.clear()
-            ev3.screen.draw_text(10, 10, "GREEN = UP")
-            ev3.screen.draw_text(10, 30, "RED = DOWN")
-            ev3.screen.draw_text(10, 50, "BLUE = LEFT")
-            ev3.screen.draw_text(10, 70, "YELLOW = RIGHT")
+            ev3.screen.draw_text(5, 10, "GREEN = UP")
+            ev3.screen.draw_text(5, 30, "RED = DOWN")
+            ev3.screen.draw_text(5, 50, "BLUE = LEFT")
+            ev3.screen.draw_text(5, 70, "YELLOW = RIGHT")
             wait(500)
             done = False
             while not done:
@@ -146,42 +148,49 @@ def schedule():
     pressed = ev3.buttons.pressed()
     while not Button.CENTER in pressed:
         pressed = ev3.buttons.pressed()
-        ev3.screen.draw_text(10, 10, "Set wait time")
-        ev3.screen.draw_text(10, 30, "Center to confirm")
-        ev3.screen.draw_text(10, 50, "Wait time:" + str(schedule_wait/1000) + "s")
-        ev3.screen.draw_text(10, 70, "UP = +1s")
-        ev3.screen.draw_text(10, 90, "DOWN = -1s")
+        ev3.screen.draw_text(5, 10, "Set wait time")
+        ev3.screen.draw_text(5, 30, "Center to confirm")
+        ev3.screen.draw_text(5, 50, "Wait time:" + str(schedule_wait/1000) + "s")
+        ev3.screen.draw_text(5, 70, "UP = +1s")
+        ev3.screen.draw_text(5, 90, "DOWN = -1s")
         if Button.UP in pressed:
-            schedule_wait += 1000
-            wait(100)
-            ev3.screen.clear()
+            if schedule_wait >= 0:
+                schedule_wait += 1000
+                wait(100)
+                ev3.screen.clear()
         if Button.DOWN in pressed:
-            schedule_wait -= 1000
-            wait(100)
-            ev3.screen.clear()
+            if schedule_wait >= 0:
+                schedule_wait -= 1000
+                wait(100)
+                ev3.screen.clear()
     ev3.screen.clear()
 
 
 def arm_move(position, speed=60):
     elbow_motor.run_target(speed, position, wait=False)
     while elbow_motor.angle() != round(position):
-
-        ev3.screen.draw_text(10, 10, "Center button to abort")
+        ev3.screen.draw_text(5, 10, "Center button to pause")
+        ev3.screen.draw_text(5, 30, "UP button for emergency shutdown")
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
-            shutdown_button()
+            pause_button()
             elbow_motor.run_target(speed, position, wait=False)
+        if Button.UP in pressed:
+            emergency_button()
     ev3.screen.clear()
 
 
 def base_move(position, speed=60):
     base_motor.run_target(speed, position, wait=False)
     while base_motor.angle() != position:
-        ev3.screen.draw_text(10, 10, "Center button to abort")
+        ev3.screen.draw_text(5, 10, "Center: pause")
+        ev3.screen.draw_text(5, 30, "UP: Emergency Shutdown")
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
-            shutdown_button()
+            pause_button()
             base_motor.run_target(speed, position, wait=False)
+        if Button.UP in pressed:
+            emergency_button()
         if is_multiplayer:
             if base_motor.angle() < 30:
                 send_occupied(mbox)
@@ -282,25 +291,25 @@ def robot_func(zones):
     putdown = zones[1]
     block_pickup(pickup)
     bd = block_detect()
+    ev3.say(bd)
     arm_move(30, 20)
     if type(bd) is type(""):
         if bd == "WHITE":
             wait(schedule_wait)
-        else:
+        try:
             block_putdown(putdown.get(bd))
-    else:
-        wait(1000)
-        block_putdown(base_motor.angle())
+        except:
+            block_putdown(base_motor.angle())
 
 
-def shutdown_button():
+def pause_button():
     wait(300)
     pressed = ev3.buttons.pressed()
     ev3.screen.clear()
     while not Button.CENTER in pressed:
-        ev3.screen.draw_text(10, 10, "Center button to resume")
-        ev3.screen.draw_text(10, 30, "UP to change schedule")
-        ev3.screen.draw_text(10, 50, "DOWN to change zones")
+        ev3.screen.draw_text(5, 10, "Center: resume")
+        ev3.screen.draw_text(5, 30, "UP: change schedule")
+        ev3.screen.draw_text(5, 50, "DOWN: change zones")
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
             schedule()
@@ -316,10 +325,28 @@ def shutdown_button():
         base_motor.hold()
     wait(300)
 
-# Robot messaging system
+
+def emergency_button():
+    base_motor.hold()
+    ev3.screen.clear()
+    ev3.screen.draw_text(5, 10, "Emergency stop")
+    ev3.screen.draw_text(5, 30, "Shutting down...")
+    for x in pickup_angles:
+        if math.isclose(x, base_motor.angle(),abs_tol=10):
+            block_putdown(x)
+            exit(0)
+    elbow_motor.run_angle(10,-30)  
+    exit(0)
 
 
 # Robot messaging system
+# multi robot code, two states either server or client
+# if SERVER it will wait for the message "ping" and when it recieves it will send "pong"
+# this is to ensure connection between robots. 
+# if CLIENT it will try to connect to a server/robot called "EV3" then it will send "ping" and then wait for "pong"
+# this is to ensure connection between robots.
+# does not have any error checks or things
+
 def establish_connection(state):
     if state is True:
         server = BluetoothMailboxServer()
@@ -327,15 +354,17 @@ def establish_connection(state):
         print("Server established!")
         mbox = TextMailbox("mbox", server)
         while True:
+            wait(2000)
             msg = mbox.wait_new()
             if msg == "ping":
                 mbox.send("pong")
                 return mbox
     else:
         client = BluetoothMailboxClient()
-        client.connect("EV3")
+        client.connect("ev3dev")
         mbox = TextMailbox("mbox", client)
         while True:
+            wait(2000)
             mbox.send("ping")
             msg = mbox.wait_new()
             if msg == "pong":
@@ -360,21 +389,24 @@ def send_unoccupied(mbox): # supposed to send false if location is unoccupied
 
 def server_or_client(connection_state):
     while True:
-        ev3.screen.draw_text(10, 10, "UP for server")
-        ev3.screen.draw_text(10, 30, "DOWN for client")
+        ev3.screen.draw_text(5, 10, "UP for server")
+        ev3.screen.draw_text(5, 30, "DOWN for client")
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
             connection_state = True
+            ev3.screen.clear()
             return connection_state
         if Button.DOWN in pressed:
             connection_state = False
+            ev3.screen.clear()
             return connection_state
+    
 
 
 def multiplayer():
     while True:
-        ev3.screen.draw_text(10, 10, "UP for multirobot")
-        ev3.screen.draw_text(10, 30, "DOWN for single robot")
+        ev3.screen.draw_text(5, 10, "UP for multirobot")
+        ev3.screen.draw_text(5, 30, "DOWN for single robot")
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
             return True
