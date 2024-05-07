@@ -77,12 +77,14 @@ def closest_pudozone(angle):
 
 
 def robot_calibrate():
+    print("Calibrating robot...")
     elbow_motor.run_until_stalled(60,then= Stop.HOLD, duty_limit= 25)
     base_cal()
     gripper_cal()
     base_move(90)
     arm_cal()
     base_move(0)
+    print("\n"+"Calibration done!")
 
 
 def block_select_screen(nr):
@@ -432,12 +434,12 @@ def robot_func(zones, belt):
         block_pickup(pickup)
     bd = block_detect()
     arm_move(30, 20)
-    ev3.speaker.say(bd)
+    if bd != "WHITE":
+        print("\n"+ "Block detected! Colour:" + bd + ", Size:" + size_detect(bd))
+    else:
+        print("\n"+ "Block not detected!)
     if bd == "WHITE":
         wait(schedule_wait)
-    # print(putdown)
-    # print(bd)
-    # print(bd + size_detect(bd))
     try:
         block_putdown(putdown.get(bd + size_detect(bd)))
     except:
@@ -519,15 +521,21 @@ def establish_connection(state):
                 wait(1000)
                 return mbox
     else:
+        bla = 0
         client = BluetoothMailboxClient()
-        client.connect("ev3dev")
-        mbox = TextMailbox("mbox", client)
-        while True:
-            wait(2000)
-            mbox.send("ping")
-            msg = mbox.wait_new()
-            if msg == "pong":
-                return mbox
+        while bla != 10:
+            try:
+                client.connect("ev3dev")
+                mbox = TextMailbox("mbox", client)
+                bla =+ 1
+                while True:
+                    wait(2000)
+                    mbox.send("ping")
+                    msg = mbox.wait_new()
+                    if msg == "pong":
+                        return mbox
+            except:
+                print("Connection error!!!!!")
 
 
 def recieve_occupied(mbox):  # supposed to recieve true of location is occupied
@@ -626,8 +634,10 @@ def main():
     robot_calibrate()
     is_multiplayer = multiplayer()
     if is_multiplayer:
+        print("\n"+ "Setting up multiplayer...")
         server_or_client(connection_state)
         mbox = establish_connection(connection_state)
+        print("\n"+ "Multiplayer established!")
     belt = choose_belt()
     schedule()
     zones = manual_move()
