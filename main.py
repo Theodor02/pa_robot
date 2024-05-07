@@ -280,6 +280,8 @@ def arm_move(position, speed=60):
 
 
 def base_move(position, speed=60):
+    sent_count = 0
+    recieve_count = 0
     while base_motor.angle() != position:
         base_motor.run_target(speed, position, wait=False)
         ev3.screen.draw_text(12, 10, "Center: pause")
@@ -288,19 +290,25 @@ def base_move(position, speed=60):
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
             pause_button()
+            print("\n"+ "Resuming...")
             base_motor.run_target(speed, position, wait=False)
         if Button.UP in pressed:
             emergency_button()
         if is_multiplayer:
             if base_motor.angle() < 45:
                 sentmsg = send_occupied(mbox)
+                if sent_count == 0:
+                    print("\n"+"Sending occupied status")
+                    sent_count += 1
             else:
                 sentmsg = send_unoccupied(mbox)
             if recieve_occupied(mbox) and sentmsg:
                 base_motor.run_target(speed, 60)
             if recieve_occupied(mbox):
+                if recieve_count == 0:
+                    print("\n"+"Recieved occupied status")
+                    recieve_count += 1
                 while recieve_occupied(mbox):
-                    print(recieve_occupied(mbox))
                     if base_motor.angle() > 45:
                         base_motor.run_target(speed, 50)
                     else:
@@ -398,6 +406,7 @@ def most_frequent(List):
 
 
 def block_pickup(angle):
+    print("\n"+ "Picking up block...")
     base_move(angle)
     gripper_motor.run_target(50, -90)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30)
@@ -418,6 +427,7 @@ def block_pickup_belt(angle):
 
 
 def block_putdown(angle):
+    print("\n"+ "Putting down block...")
     base_move(angle)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 30)
     blocks_at_zone[pickup_angles.index(angle)] += 1
@@ -433,15 +443,16 @@ def robot_func(zones, belt):
     else:
         block_pickup(pickup)
     bd = block_detect()
+    size = size_detect(bd)
     arm_move(30, 20)
     if bd != "WHITE":
-        print("\n"+ "Block detected! Colour:" + bd + ", Size:" + size_detect(bd))
+        print("\n"+ "Block detected! Colour:" + bd + ", Size:" + size)
     else:
-        print("\n"+ "Block not detected!)
+        print("\n"+ "Block not detected!" + "Trying again in" + str(schedule_wait/1000) + "s ...")
     if bd == "WHITE":
         wait(schedule_wait)
     try:
-        block_putdown(putdown.get(bd + size_detect(bd)))
+        block_putdown(putdown.get(bd + size))
     except:
         if belt:  # snubben fick bältet
             elbow_motor.run_target(60,0)
@@ -454,6 +465,7 @@ def pause_button():
     wait(300)
     pressed = ev3.buttons.pressed()
     ev3.screen.clear()
+    print("\n"+ "Paused!")
     while not Button.CENTER in pressed:
         ev3.screen.draw_text(12, 10, "Center: resume")
         ev3.screen.draw_text(12, 30, "UP: change schedule")
@@ -478,6 +490,7 @@ def pause_button():
 
 def emergency_button():
     base_motor.hold()
+    print("\n"+ "Emergency stop!")
     ev3.screen.clear()
     ev3.screen.draw_text(12, 10, "Emergency stop")
     ev3.screen.draw_text(12, 30, "Shutting down...")
@@ -535,7 +548,7 @@ def establish_connection(state):
                     if msg == "pong":
                         return mbox
             except:
-                print("Connection error!!!!!")
+                print("Connection ERROR!!!")
 
 
 def recieve_occupied(mbox):  # supposed to recieve true of location is occupied
