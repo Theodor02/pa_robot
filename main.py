@@ -32,59 +32,59 @@ ev3.screen.set_font(custom_font)
 
 
 def outlines(amount):
-    ev3.screen.draw_box(2,2,176,126,3)
+    ev3.screen.draw_box(2, 2, 176, 126, 3)
     for i in range(1, amount+1):
         ev3.screen.draw_line(7, 5 + i * 20, 178, 5 + i * 20, 2)
     for i in range(1, amount+1):
-        ev3.screen.draw_circle(7, -2 + i *20, 3, True)
+        ev3.screen.draw_circle(7, -2 + i * 20 , 3, True)
     if amount < 5:
-        #flowerpower
-        ev3.screen.draw_circle(90, 105, 6, True) #middle
-        ev3.screen.draw_circle(90, 115, 5) #bottom
-        ev3.screen.draw_circle(100, 105, 5) #right
-        ev3.screen.draw_circle(90, 95, 5) #top
-        ev3.screen.draw_circle(80, 105, 5) #left
-        ev3.screen.draw_circle(83, 98, 4) #top left
-        ev3.screen.draw_circle(97, 98, 4) #top right
-        ev3.screen.draw_circle(83, 112, 4) #bottom left
-        ev3.screen.draw_circle(97, 112, 4) #bottom right
+        # flowerpower
+        ev3.screen.draw_circle(90, 105, 6, True)  # middle
+        ev3.screen.draw_circle(90, 115, 5)  # bottom
+        ev3.screen.draw_circle(100, 105, 5)  # right
+        ev3.screen.draw_circle(90, 95, 5)  # top
+        ev3.screen.draw_circle(80, 105, 5)  # left
+        ev3.screen.draw_circle(83, 98, 4)  # top left
+        ev3.screen.draw_circle(97, 98, 4)  # top right
+        ev3.screen.draw_circle(83, 112, 4)  # bottom left
+        ev3.screen.draw_circle(97, 112, 4)  # bottom right
 
-        #flower right
-        ev3.screen.draw_circle(140, 105, 4, True) #middle
-        ev3.screen.draw_circle(140, 112, 3) #bottom
-        ev3.screen.draw_circle(147, 105, 3) #right
-        ev3.screen.draw_circle(140, 98, 3) #top
-        ev3.screen.draw_circle(133, 105, 3) #left
-        ev3.screen.draw_circle(136, 101, 2) #top left
-        ev3.screen.draw_circle(144, 101, 2) #top right
-        ev3.screen.draw_circle(136, 109, 2) #bottom left
-        ev3.screen.draw_circle(144, 109, 2) #bottom right
+        # flower right
+        ev3.screen.draw_circle(140, 105, 4, True)  # middle
+        ev3.screen.draw_circle(140, 112, 3)  # bottom
+        ev3.screen.draw_circle(147, 105, 3)  # right
+        ev3.screen.draw_circle(140, 98, 3)  # top
+        ev3.screen.draw_circle(133, 105, 3)  # left
+        ev3.screen.draw_circle(136, 101, 2)  # top left
+        ev3.screen.draw_circle(144, 101, 2)  # top right
+        ev3.screen.draw_circle(136, 109, 2)  # bottom left
+        ev3.screen.draw_circle(144, 109, 2)  # bottom right
 
-        #flower left
-        ev3.screen.draw_circle(40, 105, 4, True) #middle
-        ev3.screen.draw_circle(40, 112, 3) #bottom
-        ev3.screen.draw_circle(47, 105, 3) #right
-        ev3.screen.draw_circle(40, 98, 3) #top
-        ev3.screen.draw_circle(33, 105, 3) #left
-        ev3.screen.draw_circle(36, 101, 2) #top left
-        ev3.screen.draw_circle(44, 101, 2) #top right
-        ev3.screen.draw_circle(36, 109, 2) #bottom left
-        ev3.screen.draw_circle(44, 109, 2) #bottom right
+        # flower left
+        ev3.screen.draw_circle(40, 105, 4, True)  # middle
+        ev3.screen.draw_circle(40, 112, 3)  # bottom
+        ev3.screen.draw_circle(47, 105, 3)  # right
+        ev3.screen.draw_circle(40, 98, 3)  # top
+        ev3.screen.draw_circle(33, 105, 3)  # left
+        ev3.screen.draw_circle(36, 101, 2)  # top left
+        ev3.screen.draw_circle(44, 101, 2)  # top right
+        ev3.screen.draw_circle(36, 109, 2)  # bottom left
+        ev3.screen.draw_circle(44, 109, 2)  # bottom right
 
 
 def closest_pudozone(angle):
-
     return pickup_angles[min(range(len(pickup_angles)), key=lambda i: abs(pickup_angles[i]-angle))]
 
 
 def robot_calibrate():
+    print("Calibrating robot...")
     elbow_motor.run_until_stalled(60,then= Stop.HOLD, duty_limit= 25)
     base_cal()
     gripper_cal()
     base_move(90)
     arm_cal()
     base_move(0)
-    
+    print("\n"+"Calibration done!")
 
 
 def block_select_screen(nr):
@@ -215,6 +215,7 @@ def manual_move():
     wait(1000)
     return [pickup_zones, putdown_zones]
 
+
 def size_button():
     size = ""
     ev3.screen.clear()
@@ -236,6 +237,7 @@ def size_button():
         elif Button.CENTER in pressed and Button.CENTER not in was_pressed:
             return ["LARGE","SMALL"]
     return size
+
 
 def schedule():
     global schedule_wait
@@ -278,6 +280,8 @@ def arm_move(position, speed=60):
 
 
 def base_move(position, speed=60):
+    sent_count = 0
+    recieve_count = 0
     while base_motor.angle() != position:
         base_motor.run_target(speed, position, wait=False)
         ev3.screen.draw_text(12, 10, "Center: pause")
@@ -286,24 +290,29 @@ def base_move(position, speed=60):
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
             pause_button()
+            print("\n"+ "Resuming...")
             base_motor.run_target(speed, position, wait=False)
         if Button.UP in pressed:
             emergency_button()
         if is_multiplayer:
             if base_motor.angle() < 45:
                 sentmsg = send_occupied(mbox)
+                if sent_count == 0:
+                    print("\n"+"Sending occupied status")
+                    sent_count += 1
             else:
                 sentmsg = send_unoccupied(mbox)
             if recieve_occupied(mbox) and sentmsg:
                 base_motor.run_target(speed, 60)
             if recieve_occupied(mbox):
+                if recieve_count == 0:
+                    print("\n"+"Recieved occupied status")
+                    recieve_count += 1
                 while recieve_occupied(mbox):
-                    print(recieve_occupied(mbox))
                     if base_motor.angle() > 45:
                         base_motor.run_target(speed, 50)
                     else:
                         base_motor.hold()
-
     ev3.screen.clear()
 
 
@@ -361,14 +370,14 @@ def block_detect():
     return most_frequent(color_list)
 
 
-#LR = 66
-#SR = 12
-#LY = 80
-#SY = 20
-#LGR = 10
-#SGR = 2
-#LB = 9
-#SB = 2
+# LR = 66
+# SR = 12
+# LY = 80
+# SY = 20
+# LGR = 10
+# SGR = 2
+# LB = 9
+# SB = 2
 
 
 def size_detect(color):
@@ -390,13 +399,14 @@ def size_detect(color):
         return "SMALL"
     else:
         return "SMALL"
-        
+
 
 def most_frequent(List):
     return max(set(List), key=List.count)
 
 
 def block_pickup(angle):
+    print("\n"+ "Picking up block...")
     base_move(angle)
     gripper_motor.run_target(50, -90)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30)
@@ -417,6 +427,7 @@ def block_pickup_belt(angle):
 
 
 def block_putdown(angle):
+    print("\n"+ "Putting down block...")
     base_move(angle)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 30)
     blocks_at_zone[pickup_angles.index(angle)] += 1
@@ -432,17 +443,18 @@ def robot_func(zones, belt):
     else:
         block_pickup(pickup)
     bd = block_detect()
+    size = size_detect(bd)
     arm_move(30, 20)
-    ev3.speaker.say(bd)
+    if bd != "WHITE":
+        print("\n"+ "Block detected! Colour:" + bd + ", Size:" + size)
+    else:
+        print("\n"+ "Block not detected!" + "Trying again in" + str(schedule_wait/1000) + "s ...")
     if bd == "WHITE":
         wait(schedule_wait)
-    # print(putdown)
-    # print(bd)
-    # print(bd + size_detect(bd))
     try:
-        block_putdown(putdown.get(bd + size_detect(bd)))
+        block_putdown(putdown.get(bd + size))
     except:
-        if belt: # snubben fick bältet
+        if belt:  # snubben fick bältet
             elbow_motor.run_target(60,0)
             gripper_motor.run_target(50, -90)
         else:
@@ -453,6 +465,7 @@ def pause_button():
     wait(300)
     pressed = ev3.buttons.pressed()
     ev3.screen.clear()
+    print("\n"+ "Paused!")
     while not Button.CENTER in pressed:
         ev3.screen.draw_text(12, 10, "Center: resume")
         ev3.screen.draw_text(12, 30, "UP: change schedule")
@@ -477,6 +490,7 @@ def pause_button():
 
 def emergency_button():
     base_motor.hold()
+    print("\n"+ "Emergency stop!")
     ev3.screen.clear()
     ev3.screen.draw_text(12, 10, "Emergency stop")
     ev3.screen.draw_text(12, 30, "Shutting down...")
@@ -520,32 +534,38 @@ def establish_connection(state):
                 wait(1000)
                 return mbox
     else:
+        bla = 0
         client = BluetoothMailboxClient()
-        client.connect("ev3dev")
-        mbox = TextMailbox("mbox", client)
-        while True:
-            wait(2000)
-            mbox.send("ping")
-            msg = mbox.wait_new()
-            if msg == "pong":
-                return mbox
+        while bla != 10:
+            try:
+                client.connect("ev3dev")
+                mbox = TextMailbox("mbox", client)
+                bla =+ 1
+                while True:
+                    wait(2000)
+                    mbox.send("ping")
+                    msg = mbox.wait_new()
+                    if msg == "pong":
+                        return mbox
+            except:
+                print("Connection ERROR!!!")
 
 
-def recieve_occupied(mbox): # supposed to recieve true of location is occupied
-        location_msg = mbox.read()
-        if location_msg == "False":
-            return False
-        else:
-            return True
+def recieve_occupied(mbox):  # supposed to recieve true of location is occupied
+    location_msg = mbox.read()
+    if location_msg == "False":
+        return False
+    else:
+        return True
 
 
-def send_occupied(mbox): # supposed to send true if location is occupied
+def send_occupied(mbox):  # supposed to send true if location is occupied
     msg = "True"
     mbox.send(msg)
     return True
 
 
-def send_unoccupied(mbox): # supposed to send false if location is unoccupied
+def send_unoccupied(mbox):  # supposed to send false if location is unoccupied
     msg = "False"
     mbox.send(msg)
     return False
@@ -567,7 +587,7 @@ def server_or_client(connection_state):
             connection_state = False
             ev3.screen.clear()
             return connection_state
-    
+
 
 def multiplayer():
     while True:
@@ -582,8 +602,10 @@ def multiplayer():
 
 
 replay = "Shawtys like a melody in my head That I cant keep out, got me singing like Na-na-na-na, every day Its like my iPod stuck on replay, replay-ay-ay-ay"
-funny_images = ["shawty1","shawty2"]
-def funny(text,images): # viktigaste functionen av dem alla.
+funny_images = ["shawty1", "shawty2"]
+
+
+def funny(text, images):  # viktigaste functionen av dem alla.
     text_list = text.split() or []
     images_list = images or []
     image_index = 0
@@ -592,7 +614,7 @@ def funny(text,images): # viktigaste functionen av dem alla.
             image_index = 0
         ev3.screen.clear()
         if images_list != []:
-            ev3.screen.draw_image(0,0,images_list[image_index])
+            ev3.screen.draw_image(0, 0, images_list[image_index])
         ev3.speaker.say(i)
         image_index += 1
 
@@ -621,12 +643,14 @@ def main():
     global mbox
     global is_multiplayer
     belt = False
-    #funny(replay,funny_images)
+    # funny(replay,funny_images)
     robot_calibrate()
     is_multiplayer = multiplayer()
     if is_multiplayer:
+        print("\n"+ "Setting up multiplayer...")
         server_or_client(connection_state)
         mbox = establish_connection(connection_state)
+        print("\n"+ "Multiplayer established!")
     belt = choose_belt()
     schedule()
     zones = manual_move()
