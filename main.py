@@ -7,6 +7,7 @@ from pybricks.tools import wait
 from pybricks.messaging import BluetoothMailboxServer, TextMailbox, BluetoothMailboxClient
 import math
 from pybricks.media.ev3dev import Font
+import sys
 
 
 # Ev3 Motor stuff
@@ -26,6 +27,7 @@ blocks_at_zone = [0, 0, 0, 0]
 pickup_angles = [0, 50, 100, 193]
 connection_state = True
 global schedule_wait
+global belt
 is_multiplayer = False
 custom_font = Font(family=None, size=14, bold=True, monospace=False)
 ev3.screen.set_font(custom_font)
@@ -264,7 +266,7 @@ def schedule():
     ev3.screen.clear()
 
 
-def arm_move(position, speed=60):
+def arm_move(position, speed=100):
     elbow_motor.run_target(speed, position, wait=False)
     while elbow_motor.angle() != round(position):
         ev3.screen.draw_text(12, 10, "Center button to pause")
@@ -273,13 +275,14 @@ def arm_move(position, speed=60):
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
             pause_button()
+            print("\n"+ "Resuming...")
             elbow_motor.run_target(speed, position, wait=False)
         if Button.UP in pressed:
             emergency_button()
     ev3.screen.clear()
 
 
-def base_move(position, speed=60):
+def base_move(position, speed=100):
     sent_count = 0
     recieve_count = 0
     while base_motor.angle() != position:
@@ -426,13 +429,18 @@ def block_pickup_belt(angle):
     gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=75)
 
 
-def block_putdown(angle):
+def block_putdown(angle, emergency=False):
     print("\n"+ "Putting down block...")
     base_move(angle)
-    arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 30)
-    blocks_at_zone[pickup_angles.index(angle)] += 1
+    if emergency == False:
+        arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 30)
+        if angle > 5:
+            blocks_at_zone[pickup_angles.index(angle)] += 1
+    else:
+        arm_move(-30, 30)
     gripper_motor.run_target(50, -90)
-    arm_move(30, 20)
+    if emergency == False:
+        arm_move(30, 20)
 
 
 def robot_func(zones, belt):
@@ -446,9 +454,9 @@ def robot_func(zones, belt):
     size = size_detect(bd)
     arm_move(30, 20)
     if bd != "WHITE":
-        print("\n"+ "Block detected! Colour:" + bd + ", Size:" + size)
+        print("\n"+ "Block detected! Colour: " + bd + " Size: " + size)
     else:
-        print("\n"+ "Block not detected!" + "Trying again in" + str(schedule_wait/1000) + "s ...")
+        print("\n"+ "Block not detected! " + "Trying again in " + str(schedule_wait/1000) + "s ...")
     if bd == "WHITE":
         wait(schedule_wait)
     try:
@@ -489,18 +497,19 @@ def pause_button():
 
 
 def emergency_button():
+    global belt
+    global is_multiplayer
     base_motor.hold()
+    elbow_motor.hold()
+    if belt == True and is_multiplayer:
+        send_occupied(mbox)
     print("\n"+ "Emergency stop!")
     ev3.screen.clear()
     ev3.screen.draw_text(12, 10, "Emergency stop")
     ev3.screen.draw_text(12, 30, "Shutting down...")
     outlines(2)
-    # for x in pickup_angles:
-    #     if math.isclose(x, base_motor.angle(),abs_tol=10):
-    #         block_putdown(x)
-    #         exit(0)
-    block_putdown(base_motor.angle())
-    exit(0)
+    block_putdown(base_motor.angle(), True)
+    sys.exit()
 
 
 # Robot messaging system
@@ -642,6 +651,7 @@ def main():
     global zones
     global mbox
     global is_multiplayer
+    global belt
     belt = False
     # funny(replay,funny_images)
     robot_calibrate()
@@ -652,6 +662,8 @@ def main():
         mbox = establish_connection(connection_state)
         print("\n"+ "Multiplayer established!")
     belt = choose_belt()
+    if belt == True and is_multiplayer:
+        send_unoccupied(mbox)
     schedule()
     zones = manual_move()
     while True:
