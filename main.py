@@ -23,7 +23,7 @@ colorsensor = ColorSensor(Port.S2)
 
 # Global Variables
 blocks_at_zone = [0, 0, 0, 0]
-pickup_angles = [2, 103, 148, 193]
+pickup_angles = [0, 50, 100, 193]
 connection_state = True
 global schedule_wait
 is_multiplayer = False
