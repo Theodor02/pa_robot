@@ -24,7 +24,7 @@ colorsensor = ColorSensor(Port.S2)
 
 # Global Variables
 blocks_at_zone = [0, 0, 0, 0]
-pickup_angles = [0, 50, 100, 193]
+pickup_angles = [0, 50, 110, 205]
 connection_state = True
 global schedule_wait
 global belt
@@ -79,11 +79,12 @@ def closest_pudozone(angle):
 
 
 def robot_calibrate():
+    global belt
     print("Calibrating robot...")
     elbow_motor.run_until_stalled(60,then= Stop.HOLD, duty_limit= 25)
     base_cal()
-    gripper_cal()
     base_move(90)
+    gripper_cal()
     arm_cal()
     base_move(0)
     print("\n"+"Calibration done!")
@@ -129,9 +130,9 @@ def manual_move():
     while (check):
         was_pressed = pressed
         pressed = ev3.buttons.pressed()
-        ev3.screen.draw_text(12, 10, 'DONE = CENTER')
-        ev3.screen.draw_text(12, 30, 'PICKUP = UP')
-        ev3.screen.draw_text(12, 50, 'DROPOFF = DOWN')
+        ev3.screen.draw_text(12, 10, 'CENTER: Done')
+        ev3.screen.draw_text(12, 30, 'UP: Pickup Zone')
+        ev3.screen.draw_text(12, 50, 'DOWN: Dropoff Zone')
         outlines(3)
         if Button.LEFT in pressed:
             base_motor.run(60)
@@ -149,10 +150,10 @@ def manual_move():
 
         if Button.DOWN in pressed and Button.DOWN not in was_pressed:
             ev3.screen.clear()
-            ev3.screen.draw_text(12, 10, "GREEN = UP")
-            ev3.screen.draw_text(12, 30, "RED = DOWN")
-            ev3.screen.draw_text(12, 50, "BLUE = LEFT")
-            ev3.screen.draw_text(12, 70, "YELLOW = RIGHT")
+            ev3.screen.draw_text(12, 10, "UP: Green")
+            ev3.screen.draw_text(12, 30, "DOWN: Red")
+            ev3.screen.draw_text(12, 50, "LEFT: Blue")
+            ev3.screen.draw_text(12, 70, "RIGHT: Yellow")
             outlines(4)
             wait(100)
             done = False
@@ -222,9 +223,9 @@ def size_button():
     size = ""
     ev3.screen.clear()
     outlines(3)
-    ev3.screen.draw_text(12, 10, "Large = UP")
-    ev3.screen.draw_text(12, 30, "Both = Center")
-    ev3.screen.draw_text(12, 50, "Small = Down")
+    ev3.screen.draw_text(12, 10, "UP: Large")
+    ev3.screen.draw_text(12, 30, "CENTER: Both")
+    ev3.screen.draw_text(12, 50, "DOWN: Small")
     done = False
     pressed = ev3.buttons.pressed()
     while not done:
@@ -249,9 +250,9 @@ def schedule():
     while not Button.CENTER in pressed:
         pressed = ev3.buttons.pressed()
         ev3.screen.draw_text(12, 10, "Set wait time")
-        ev3.screen.draw_text(12, 30, "Center to confirm")
+        ev3.screen.draw_text(12, 30, "CENTER: Confirm")
         ev3.screen.draw_text(12, 50, "Wait time:" + str(schedule_wait/1000) + "s")
-        ev3.screen.draw_text(12, 70, "UP = +1s, DOWN = -1s")
+        ev3.screen.draw_text(12, 70, "UP: +1s, DOWN: -1s")
         outlines(4)
         if Button.UP in pressed:
             if schedule_wait >= 0:
@@ -269,8 +270,8 @@ def schedule():
 def arm_move(position, speed=100):
     elbow_motor.run_target(speed, position, wait=False)
     while elbow_motor.angle() != round(position):
-        ev3.screen.draw_text(12, 10, "Center button to pause")
-        ev3.screen.draw_text(12, 30, "UP button for emergency shutdown")
+        ev3.screen.draw_text(12, 10, "CENTER: Pause")
+        ev3.screen.draw_text(12, 30, "UP: Emergency Shutdown")
         outlines(2)
         pressed = ev3.buttons.pressed()
         if Button.CENTER in pressed:
@@ -282,12 +283,12 @@ def arm_move(position, speed=100):
     ev3.screen.clear()
 
 
-def base_move(position, speed=100):
+def base_move(position, speed=300):
     sent_count = 0
     recieve_count = 0
     while base_motor.angle() != position:
         base_motor.run_target(speed, position, wait=False)
-        ev3.screen.draw_text(12, 10, "Center: pause")
+        ev3.screen.draw_text(12, 10, "CENTER: Pause")
         ev3.screen.draw_text(12, 30, "UP: Emergency Shutdown")
         outlines(2)
         pressed = ev3.buttons.pressed()
@@ -301,7 +302,7 @@ def base_move(position, speed=100):
             if base_motor.angle() < 45:
                 sentmsg = send_occupied(mbox)
                 if sent_count == 0:
-                    print("\n"+"Sending occupied status")
+                    print("\n"+"Sending Occupied Status")
                     sent_count += 1
             else:
                 sentmsg = send_unoccupied(mbox)
@@ -309,7 +310,7 @@ def base_move(position, speed=100):
                 base_motor.run_target(speed, 60)
             if recieve_occupied(mbox):
                 if recieve_count == 0:
-                    print("\n"+"Recieved occupied status")
+                    print("\n"+"Recieved Occupied Status")
                     recieve_count += 1
                 while recieve_occupied(mbox):
                     if base_motor.angle() > 45:
@@ -414,7 +415,7 @@ def block_pickup(angle):
     gripper_motor.run_target(50, -90)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30)
     gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=75)
-    arm_move(0, 20)
+    arm_move(-3)
     if blocks_at_zone[pickup_angles.index(angle)] > 0:
         blocks_at_zone[pickup_angles.index(angle)] -= 1
 
@@ -423,8 +424,8 @@ def block_pickup_belt(angle):
     arm_move(20)
     base_move(angle)
     gripper_motor.run_target(50, -90)
-    while colorsensor.reflection() <= 2:
-        print("")
+    while colorsensor.reflection() < 2:
+        continue
     arm_move(-5,150)
     gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=75)
 
@@ -433,14 +434,14 @@ def block_putdown(angle, emergency=False):
     print("\n"+ "Putting down block...")
     base_move(angle)
     if emergency == False:
-        arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 30)
+        arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30, 60)
         if angle > 5:
             blocks_at_zone[pickup_angles.index(angle)] += 1
     else:
-        arm_move(-30, 30)
+        elbow_motor.run_until_stalled(-60, then=Stop.HOLD, duty_limit=25)
     gripper_motor.run_target(50, -90)
     if emergency == False:
-        arm_move(30, 20)
+        arm_move(30)
 
 
 def robot_func(zones, belt):
@@ -452,21 +453,29 @@ def robot_func(zones, belt):
         block_pickup(pickup)
     bd = block_detect()
     size = size_detect(bd)
-    arm_move(30, 20)
+    wait(100)
+    arm_move(30)
     if bd != "WHITE":
         print("\n"+ "Block detected! Colour: " + bd + " Size: " + size)
     else:
         print("\n"+ "Block not detected! " + "Trying again in " + str(schedule_wait/1000) + "s ...")
-    if bd == "WHITE":
+    if bd == "WHITE" and not belt:
+        block_putdown(base_motor.angle())
+        arm_move(30)
         wait(schedule_wait)
-    try:
-        block_putdown(putdown.get(bd + size))
-    except:
-        if belt:  # snubben fick bältet
-            elbow_motor.run_target(60,0)
-            gripper_motor.run_target(50, -90)
-        else:
-            block_putdown(base_motor.angle())
+    elif bd == "WHITE" and belt:
+        arm_move(-5)
+        gripper_motor.run_target(50, -90)
+        arm_move(30)
+    else:
+        try:
+            block_putdown(putdown.get(bd + size))
+        except:
+            if belt:  # snubben fick bältet
+                elbow_motor.run_target(60,0)
+                gripper_motor.run_target(50, -90)
+            else:
+                block_putdown(base_motor.angle())
 
 
 def pause_button():
@@ -475,10 +484,10 @@ def pause_button():
     ev3.screen.clear()
     print("\n"+ "Paused!")
     while not Button.CENTER in pressed:
-        ev3.screen.draw_text(12, 10, "Center: resume")
-        ev3.screen.draw_text(12, 30, "UP: change schedule")
-        ev3.screen.draw_text(12, 50, "DOWN: change zones")
-        ev3.screen.draw_text(12, 70, "RIGHT: emergency shutdown")
+        ev3.screen.draw_text(12, 10, "CENTER: Resume")
+        ev3.screen.draw_text(12, 30, "UP: Change Schedule")
+        ev3.screen.draw_text(12, 50, "DOWN: Change Zones")
+        ev3.screen.draw_text(12, 70, "RIGHT: Emergency Shutdown")
         outlines(4)
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
@@ -505,10 +514,20 @@ def emergency_button():
         send_occupied(mbox)
     print("\n"+ "Emergency stop!")
     ev3.screen.clear()
-    ev3.screen.draw_text(12, 10, "Emergency stop")
-    ev3.screen.draw_text(12, 30, "Shutting down...")
+    ev3.screen.draw_text(12, 10, "Emergency Stop! D:")
+    ev3.screen.draw_text(12, 30, "Shutting Down...")
     outlines(2)
-    block_putdown(base_motor.angle(), True)
+    if not belt:
+        block_putdown(base_motor.angle(), True)
+    else:
+        if base_motor.angle() < 60:
+            base_move(0)
+            arm_move(-5,150)
+            gripper_motor.run_target(50, -90)
+            arm_move(20,150)
+            elbow_motor.hold()
+        else:
+            block_putdown(base_motor.angle(), True)
     sys.exit()
 
 
@@ -525,19 +544,21 @@ def establish_connection(state):
     ev3.screen.clear()
     if state is True:
         server = BluetoothMailboxServer()
-        ev3.screen.draw_text(12, 10, "Waiting for connection...")
+        ev3.screen.draw_text(12, 10, "Waiting For Connection...")
         outlines(1)
+        print("\n"+ "Waiting for connection...")
         server.wait_for_connection(1)
         ev3.screen.clear()
-        ev3.screen.draw_text(12, 10, "Server established!")
+        ev3.screen.draw_text(12, 10, "Server Established!")
         outlines(1)
+        print("\n"+ "Server established!")
         mbox = TextMailbox("mbox", server)
         while True:
             wait(2000)
             msg = mbox.wait_new()
             if msg == "ping":
                 ev3.screen.clear()
-                ev3.screen.draw_text(12, 30, "Message recieved")
+                ev3.screen.draw_text(12, 30, "Message Recieved")
                 outlines(1)
                 mbox.send("pong")
                 wait(1000)
@@ -582,8 +603,8 @@ def send_unoccupied(mbox):  # supposed to send false if location is unoccupied
 
 def server_or_client(connection_state):
     ev3.screen.clear()
-    ev3.screen.draw_text(12, 10, "UP for server")
-    ev3.screen.draw_text(12, 30, "DOWN for client")
+    ev3.screen.draw_text(12, 10, "UP: Server")
+    ev3.screen.draw_text(12, 30, "DOWN: Client")
     outlines(2)
     wait(300)
     while True:
@@ -600,8 +621,8 @@ def server_or_client(connection_state):
 
 def multiplayer():
     while True:
-        ev3.screen.draw_text(12, 10, "UP for multirobot")
-        ev3.screen.draw_text(12, 30, "DOWN for single robot")
+        ev3.screen.draw_text(12, 10, "UP For Multirobot")
+        ev3.screen.draw_text(12, 30, "DOWN For Single Robot")
         outlines(2)
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:
@@ -632,8 +653,8 @@ def choose_belt():
     ev3.screen.clear()
     wait(300)
     while True:
-        ev3.screen.draw_text(12, 10, "UP for belt")
-        ev3.screen.draw_text(12, 30, "DOWN for no belt")
+        ev3.screen.draw_text(12, 10, "UP: Belt")
+        ev3.screen.draw_text(12, 30, "DOWN: No Belt")
         outlines(2)
         pressed = ev3.buttons.pressed()
         if Button.UP in pressed:

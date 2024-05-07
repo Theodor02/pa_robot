@@ -11,16 +11,13 @@ ev3 = EV3Brick()
 # Load belt
 belt = Motor(Port.D, Direction.CLOCKWISE)
 belt.control.limits(speed=150, acceleration=60)
-global anyway
-anyway = False
+
 
 def establish_connection():
     bla = 0
-    global anyway
     client = BluetoothMailboxClient()
-    while bla != 20:
+    while bla != 10:
         try:
-            wait(2000)
             client.connect("ev3dev")
             mbox = TextMailbox("mbox", client)
             bla =+ 1
@@ -29,10 +26,10 @@ def establish_connection():
                 mbox.send("ping")
                 msg = mbox.wait_new()
                 if msg == "pong":
+                    print("Connection established!!!!!")
                     return mbox
         except:
             print("Connection error!!!!!")
-    anyway = True
 
 
 def change_speed(change, speed):
@@ -46,12 +43,11 @@ def change_speed(change, speed):
 def main():
     mbox = establish_connection()
     speed = 50
-    global anyway
     belt_on = True
     belt.run(speed)
     ev3.screen.print("Speed:", speed)
     while True:
-        if mbox.read() == "False" or anyway:
+        if mbox.read() == "True":
             if Button.CENTER in ev3.buttons.pressed():
                 if belt_on:
                     ev3.light.on(Color.RED)
