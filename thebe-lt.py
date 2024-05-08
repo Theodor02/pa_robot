@@ -18,14 +18,13 @@ def establish_connection():
     bla = 0
     global anyway
     client = BluetoothMailboxClient()
-    while bla != 20:
+    while True:
         try:
-            wait(2000)
+            
             client.connect("ev3dev")
             mbox = TextMailbox("mbox", client)
             bla =+ 1
             while True:
-                wait(2000)
                 mbox.send("ping")
                 msg = mbox.wait_new()
                 if msg == "pong":
