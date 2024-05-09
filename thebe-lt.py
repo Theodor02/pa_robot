@@ -16,14 +16,9 @@ belt.control.limits(speed=150, acceleration=60)
 def establish_connection():
     bla = 0
     client = BluetoothMailboxClient()
-<<<<<<< HEAD
     while True:
         try:
             
-=======
-    while bla != 10:
-        try:
->>>>>>> d0dd5486bb100d38506e9ac31020fcf46d8f72f3
             client.connect("ev3dev")
             mbox = TextMailbox("mbox", client)
             bla =+ 1

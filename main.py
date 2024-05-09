@@ -86,7 +86,7 @@ def robot_calibrate():
     base_move(90)
     gripper_cal()
     arm_cal()
-    base_move(0)
+    base_move(90)
     print("\n"+"Calibration done!")
 
 
@@ -306,17 +306,15 @@ def base_move(position, speed=300):
                     sent_count += 1
             else:
                 sentmsg = send_unoccupied(mbox)
-            if recieve_occupied(mbox) and sentmsg:
+            if recieve_occupied(mbox) and sentmsg and base_motor.angle() < 45:
                 base_motor.run_target(speed, 60)
             if recieve_occupied(mbox):
                 if recieve_count == 0:
                     print("\n"+"Recieved Occupied Status")
                     recieve_count += 1
                 while recieve_occupied(mbox):
-                    if base_motor.angle() > 45:
+                    if base_motor.angle() < 45:
                         base_motor.run_target(speed, 50)
-                    else:
-                        base_motor.hold()
     ev3.screen.clear()
 
 
@@ -415,7 +413,7 @@ def block_pickup(angle):
     gripper_motor.run_target(50, -90)
     arm_move(math.degrees(math.atan(blocks_at_zone[pickup_angles.index(angle)]*1.9/10))-30)
     gripper_motor.run_until_stalled(200, then=Stop.HOLD, duty_limit=75)
-    arm_move(-3)
+    arm_move(2)
     if blocks_at_zone[pickup_angles.index(angle)] > 0:
         blocks_at_zone[pickup_angles.index(angle)] -= 1
 
