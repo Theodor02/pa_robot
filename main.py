@@ -169,7 +169,7 @@ def manual_move():
                     else:
                         putdown_zones["GREEN"+ size[0]] = curangle
                         putdown_zones["GREEN"+ size[1]] = curangle
-                    pickup_zones.append(curangle)
+                    # pickup_zones.append(curangle)
                     wait(10)
                     blocks_at_zone[pickup_angles.index(curangle)] = nr_of_blocks_sel()
                 elif Button.DOWN in pressed and Button.DOWN not in was_pressed:
@@ -182,7 +182,7 @@ def manual_move():
                         putdown_zones["RED"+ size[0]] = curangle
                         putdown_zones["RED"+ size[1]] = curangle
                     
-                    pickup_zones.append(curangle)
+                    # pickup_zones.append(curangle)
                     wait(10)
                     blocks_at_zone[pickup_angles.index(curangle)] = nr_of_blocks_sel()
                 elif Button.LEFT in pressed and Button.LEFT not in was_pressed:
@@ -194,8 +194,7 @@ def manual_move():
                     else:
                         putdown_zones["BLUE"+ size[0]] = curangle
                         putdown_zones["BLUE"+ size[1]] = curangle
-                    
-                    pickup_zones.append(curangle)
+                    # pickup_zones.append(curangle)
                     wait(10)
                     blocks_at_zone[pickup_angles.index(curangle)] = nr_of_blocks_sel()
                 elif Button.RIGHT in pressed and Button.RIGHT not in was_pressed:
@@ -207,8 +206,7 @@ def manual_move():
                     else:
                         putdown_zones["YELLOW"+size[0]] = curangle
                         putdown_zones["YELLOW"+size[1]] = curangle
-                    
-                    pickup_zones.append(curangle)
+                    # pickup_zones.append(curangle)
                     wait(10)
                     blocks_at_zone[pickup_angles.index(curangle)] = nr_of_blocks_sel()
             ev3.screen.clear()
@@ -216,6 +214,8 @@ def manual_move():
             check = False
     ev3.screen.clear()
     wait(1000)
+    if pickup_zones == []:
+        pickup_zones.append(0)
     return [pickup_zones, putdown_zones]
 
 
@@ -306,6 +306,9 @@ def base_move(position, speed=300):
                     sent_count += 1
             else:
                 sentmsg = send_unoccupied(mbox)
+                if sent_count == 0:
+                    print("\n"+"Sending Unoccupied Status")
+                    sent_count += 1
             if recieve_occupied(mbox) and sentmsg and base_motor.angle() < 45:
                 base_motor.run_target(speed, 60)
             if recieve_occupied(mbox):
@@ -321,10 +324,10 @@ def base_move(position, speed=300):
 def arm_cal():
     if colorsensor.reflection() < 4:
         while colorsensor.reflection() < 4:
-            elbow_motor.run(-5)
+            elbow_motor.run(-10)
     elif colorsensor.reflection() > 3:
         while colorsensor.reflection() > 3:
-            elbow_motor.run(5)
+            elbow_motor.run(10)
     elbow_motor.reset_angle(-10)
     arm_move(0)
 
@@ -556,8 +559,9 @@ def establish_connection(state):
             msg = mbox.wait_new()
             if msg == "ping":
                 ev3.screen.clear()
-                ev3.screen.draw_text(12, 30, "Message Recieved")
+                ev3.screen.draw_text(12, 10, "Message Recieved")
                 outlines(1)
+                print("\n"+ "Message Recieved!")
                 mbox.send("pong")
                 wait(1000)
                 return mbox
